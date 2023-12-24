@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import "dotenv/config";
 import bcrypt from "bcrypt";
 import { nanoid } from "nanoid";
+import jwt from "jsonwebtoken";
 
 // schema
 import User from "./Schema/User.js";
@@ -20,6 +21,19 @@ server.use(express.json());
 mongoose.connect(process.env.DB_LOCATION, {
   autoIndex: true,
 });
+
+const formateDataToSend = (user) => {
+  const access_token = jwt.sign(
+    { id: user._id },
+    process.env.SECRET_ACCESS_KEY
+  );
+  return {
+    access_token,
+    profile_img: user.personal_info.profile_img,
+    username: user.personal_info.username,
+    fullname: user.personal_info.fullname,
+  };
+};
 
 const generateUserName = async (email) => {
   let username = email.split("@")[0];
@@ -75,7 +89,7 @@ server.post("/signup", (req, res) => {
     user
       .save()
       .then((u) => {
-        return res.status(200).json({ user: u });
+        return res.status(200).json(formateDataToSend(u));
       })
       .catch((err) => {
         if (err.code == 11000) {
@@ -93,6 +107,31 @@ server.post("/signup", (req, res) => {
   // return res.status(200).json({
   //   status: "ok",
   // });
+});
+
+server.post("/signin", async (req, res) => {
+  let { email, password } = req.body;
+
+  User.findOne({ "personal_info.email": email })
+    .then((user) => {
+      if (!user) {
+        return res.status(403).json({
+          error: "User not found.",
+        });
+      }
+
+      console.log(user);
+
+      return res.json({
+        status: "Got user document",
+      });
+    })
+    .catch((err) => {
+      console.log(err);
+      return res.status(403).json({
+        error: err.message,
+      });
+    });
 });
 
 server.listen(PORT, () => {
