@@ -120,15 +120,29 @@ server.post("/signin", async (req, res) => {
         });
       }
 
+      bcrypt.compare(password, user.personal_info.password, (err, result) => {
+        if (err) {
+          return res
+            .status(403)
+            .json({ error: "Error occured while login please try again." });
+        }
+
+        if (!result) {
+          return res.status(403).json({ error: "Incorrect password." });
+        } else {
+          return res.status(200).json(formateDataToSend(user));
+        }
+      });
+
       console.log(user);
 
-      return res.json({
-        status: "Got user document",
-      });
+      // return res.json({
+      //   status: "Got user document",
+      // });
     })
     .catch((err) => {
       console.log(err);
-      return res.status(403).json({
+      return res.status(500).json({
         error: err.message,
       });
     });
